@@ -4,11 +4,11 @@ A Prototype implementation of Pseudo-RNG based on hardware-accelerated AES instr
 TL;DR
 --------
 * State: 128 bits (One XMM register of state)
-* 256-bits per iteration
+* 256-bits / 32-bytes generated per iteration
 * Cycle Length: 2^64
 * Independent Streams: 2^64
-* Passes PractRand 1TB tests and beyond.
-* Tested: 29.2 GBps (Gigabytes per second) single-thread / single-core. 
+* Passes PractRand 4TB tests
+* Tested: ~29.2 GBps (Gigabytes per second) single-thread / single-core. 
 * A throughput of ~8.5 Bytes per cycle. Or roughly 3.73 cycles per 256-bit iteration.
 * Faster than xoshiro256plus, pcg32, and std::mt19937
 
@@ -47,11 +47,10 @@ three AES instructions.
 
 4. Instruction level parallelism (ILP) -- Modern processors can execute instructions in parallel
 if they are NOT dependent on each other. The "Simple Counter + Mixer" design from pcg-random.org
-lends itself very well to ILP. I designed the AESRand "counter" to have the absolute minimum
-1-cycle of latency per iteration. While the "mixer" executes in parallel: all XMM / 128-bit SIMD
-instructions I use have a throughput of 1-per-cycle or faster. In effect, this AES-RNG code is designed
-to theoretically pump out a 256-bit result every cycle (A hypothetical future CPU could
-feasibly run this code steady-state at 256-bits per-cycle)
+lends itself very well to ILP. I designed the AESRand "counter" to potentially have the absolute minimum
+1-cycle of latency per iteration. After all, the "counter" is just a single SIMD add instruction.
+The "mixer" executes in parallel through the magic of ILP. All instructions in the mixer design
+have a throughput of 1-per-cycle.
 
 5. Full invertibility -- http://www.burtleburtle.net/bob/hash/doobs.html The JOAAT hash has a concept
 of a "bit funnel", which is a BAD thing for hashes. If you provably have full-invertibility, it means you
@@ -81,48 +80,69 @@ the other RNGs.
 
 PCG32 and xoshiro256plus were both inlined well. I wasn't sure how well they'd adapt to ILP, so I
 created a 4x manually unrolled version for the both of them. The unrolled versions don't seem to be
-faster or slower.
+faster or slower. I admit that I haven't used those RNGs before, so I'm not entirely sure if I've
+set up their ideal conditions.
 
 
-Weaknesses
+Weaknesses and Future Work
 ----------------
-This RNG is surprisngly BAD at 1-bit changes. It would take 4, maybe 5 aesenc instructions
-in a row before I could get above 8GB of tests in PracRand, and the code was just multiples slower at that point.
-I've been investigating ways to make the generator better with 1-bit changes: the PCLMULQDQ (Carry-less Multiply)
-instruction which is the basis of the 128-bit multiply in GCM seems very promising. Carry-less multiply is 
-implemented in x86, ARM, and Power9 as well.
+This RNG is surprisngly BAD at 1-bit changes. If I changed the increment to a single-bit change
+like [0x1, 0, 0, 0, ...], it would take 4, maybe 5 aesenc instructions before the code could get
+above 8GB of tests in PractRand.
+
+I experimented with various other reversible functions documented on Lemire's blog
+https://lemire.me/blog/2016/08/09/how-many-reversible-integer-operations-do-you-know/. XOR, Adds,
+bitshifts, multiplies-with-odd numbers, and more are all interesting, but the AES-instructions
+seemed to mix bits better than any of the primitive instructions.
+
+The one instruction that holds a LOT of promise is PCLMULQDQ (Carry-less Multiply). This is a
+64-bit x 64-bit polynomial multiply on 128-bit XMM registers. Roughly 3 or 4 PCLMULQDQ, along
+with some bitshifts and XORs, could implement the 128-bit carryless multiply used in GCM 
+(galois counter mode). And this seems to be a very good way to "disperse bits" and create
+an avalanche-effect.
+
+Furthermore, 64-bit carryless multiply is implemented on x86 (PCLMULQDQ), ARMv8 (PMULL and PMULL2
+on ARM64, VMULL on ARM32), and Power9 (vpmsumh: Vector Polynomial Multiply-Sum). These instructions serve
+as the basis for GCM-mode, Eliptical Curve Cryptography, and other important developments in the modern
+cipher world. I expect all future CPUs to have carryless-multiply implemented due to their importance
+to the cryptography community.
 
 However, my Threadripper 1950x appears to run the PCLMULQDQ instruction as microcode, and thus it only has
 a throughput of one-PCLMULQDQ every TWO instructions (4x less throughput than AESenc). In effect, running
-aesenc 5x in a row is faster, on my machine at least. (Intel machines are documented to run PCLMULQDQ per cycle,
-and thus PCLMULQDQ may be a faster base to use on Intel machines)
+aesenc 4x in a row has more throughput, on my machine at least. Intel machines are documented to run 
+PCLMULQDQ per cycle, and thus PCLMULQDQ may be a faster base to use on Intel machines. Further investigation 
+into the relative speeds of these cryptography instructions, across the different modern CPUs could be important.
 
 aesenc has 4 steps: SubBytes, ShiftRows, MixColumns, and XOR Round Key. SubBytes is absolutely excellent for
-RNG work. ShiftRows is useful, but only with multiple AES-instructions in a row. MixColumns is unfortunately only a
-32-bit operation, and thus only disperses bits across 32-bits inside of the state. Multiple rounds are needed
-to disperse bits further.
+RNG work. ShiftRows is useful, but only with multiple AES-instructions in a row. MixColumns is unfortunately 
+only a 32-bit operation, albeit parallel across 4-different 32-bit values. Still, a single aesenc or aesdec 
+disperses bits across 32-bits of the state. After two rounds of AES, any particular input bit only 
+affects half of the bits: 64-bits per 128-bit XMM register (or a total of ~128-bits of the 256-bit output)
+
+So 2-rounds of AES is NOT sufficient to have a proper avalanche (defined as a 50% chance to flip any bit of 
+the output). I get around the severe 1-bit weakness by ensuring that all 128-bits of state changes on every
+iteration.
 
 Thanks and Notes
 ------------
-
-I stand on the shoulders of giants.
-
 The core algorithm is based on pcg32, documented here: http://www.pcg-random.org/. The idea to 
 split "counter" with "mixer" is an incredibly effective design on modern machines with large amounts of
 instruction-level parallelism.
 
 The theory of hashing by Bob Jenkins is what most made me "get" cipher design. Bob Jenkin's
-page is absolutely excellent, and his "theory of funnels" put me on the right track. http://www.burtleburtle.net/bob/hash/doobs.html
+page is absolutely excellent, and his "theory of funnels" put me on the right track. 
+http://www.burtleburtle.net/bob/hash/doobs.html
 
 Daniel Lemire's blog is filled to the brim with SIMD tips and tricks. His article here also documents
 MANY reversible functions. While none of these reversible operations ended up in this implementation,
-the page served as a valuable reference in my experiments. https://lemire.me/blog/2016/08/09/how-many-reversible-integer-operations-do-you-know/
+the page served as a valuable reference in my experiments. 
+https://lemire.me/blog/2016/08/09/how-many-reversible-integer-operations-do-you-know/
 
 Donald Knuth's "The Art of Computer Programming", volume 2, serves as a great introduction to the
 overall theory of RNGs.
 
-PractRand: http://pracrand.sourceforge.net/ for making an incredibly awesome RNG-testing utility that actually works
-on Windows (and works easily!).
+PractRand: http://pracrand.sourceforge.net/ for making an incredibly awesome RNG-testing utility that 
+actually works on Windows (and works easily!).
 
 Agner Fog's instruction tables: I was constantly referencing Agner Fog's latency and throughput tables 
 throughout the coding of this RNG: https://www.agner.org/optimize/

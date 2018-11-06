@@ -2,6 +2,7 @@ Beginning Single-state 'serial' test
 Total Seconds: 5.06206
 GBps: 29.437
 Dummy Benchmark anti-optimizer print: 1706011378085583560
+
 Beginning Parallel (2x) test: instruction-level parallelism
 Time: 8.03749
 GBps: 37.0792

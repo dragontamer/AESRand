@@ -26,5 +26,8 @@
     <ClCompile Include="AESRand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="others.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

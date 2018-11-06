@@ -1,19 +1,14 @@
 # AESRand
-Random Number Generator based on hardware-accelerated AES instructions
+A Prototype implementation of Pseudo-RNG based on hardware-accelerated AES instructions and 128-bit SIMD
 
-TL;DR: A Prototype implementation of Pseudo-RNG based on hardware-accelerated AES instructions and 128-bit SIMD
+TL;DR
 =========
-
-* x86 / AMD64 only, but I expect this code to port easily to ARM and Power9.
-* SIMD (AVX2) and AES-NI instruction based
-* State: 2^128 bits (One XMM register of state)
+* State: 128 bits (One XMM register of state)
 * Cycle Length: 2^64
 * Independent Streams: 2^64
-* Passes PractRand 4TB tests and beyond.
-* Tested on a AMD Threadripper 1950x to achieve 29.2 GBps (Gigabytes per second) on a single-stream, or 37.0 GBps (double-stream / single-thread) on a single core.
-* Roughly 3.8x the GBps (Gigabytes per second) compared to xoshiro256plus.
-* Roughly 12.4x GBps compared to pcg32
-* Roughly 33.5x GBps compared to std::mt19937 (Failed to inline on Visual Studio 2017)
+* Passes PractRand 512GB tests and beyond.
+* Tested: 29.2 GBps (Gigabytes per second) single-thread / single-core.
+* Faster than xoshiro256plus, pcg32, and std::mt19937 
 
 Introduction
 =========

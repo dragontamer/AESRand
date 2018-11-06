@@ -10,7 +10,7 @@ TL;DR
 * Passes PractRand 1TB tests and beyond.
 * Tested: 29.2 GBps (Gigabytes per second) single-thread / single-core. 
 * A throughput of ~8.5 Bytes per cycle. Or roughly 3.73 cycles per 256-bit iteration.
-* Faster than xoshiro256plus, pcg32, and std::mt19937 
+* Faster than xoshiro256plus, pcg32, and std::mt19937
 
 Introduction
 -------

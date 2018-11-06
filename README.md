@@ -2,7 +2,7 @@
 A Prototype implementation of Pseudo-RNG based on hardware-accelerated AES instructions and 128-bit SIMD
 
 TL;DR
-=========
+--------
 * State: 128 bits (One XMM register of state)
 * Cycle Length: 2^64
 * Independent Streams: 2^64
@@ -11,7 +11,7 @@ TL;DR
 * Faster than xoshiro256plus, pcg32, and std::mt19937 
 
 Introduction
-=========
+-------
 
 Using the principles behind http://www.pcg-random.org, I decided to design my own 
 pseudo-RNG. Here were my ideas:
@@ -59,7 +59,7 @@ the concept of invertible operations. The XOR, Add, and AES-encode instructions 
 (XOR, Subtract, and AES-decode respectively).
 
 Benchmark Results
-=========
+--------
 
 Included in the code is a very simple benchmark, where I simply run the various
 RNGs, and use Windows's "QueryPerformanceCounter" to check the time before and afterwards.
@@ -99,8 +99,53 @@ Time: 4.83551
 GBps: 7.70403
 Dummy Benchmark anti-optimizer print: 2202972135473059297
 
+Weaknesses
+----------------
+This RNG is surprisngly BAD at 1-bit changes. It would take 4, maybe 5 aesenc instructions
+in a row before I could get above 8GB of tests in PracRand, and the code was just multiples slower at that point.
+I've been investigating ways to make the generator better with 1-bit changes: the PCLMULQDQ (Carry-less Multiply)
+instruction which is the basis of the 128-bit multiply in GCM seems very promising. Carry-less multiply is 
+implemented in x86, ARM, and Power9 as well.
+
+However, my Threadripper 1950x appears to run the PCLMULQDQ instruction as microcode, and thus it only has
+a throughput of one-PCLMULQDQ every TWO instructions (4x less throughput than AESenc). In effect, running
+aesenc 5x in a row is faster, on my machine at least. (Intel machines are documented to run PCLMULQDQ per cycle,
+and thus PCLMULQDQ may be a faster base to use on Intel machines)
+
+aesenc has 4 steps: SubBytes, ShiftRows, MixColumns, and XOR Round Key. SubBytes is absolutely excellent for
+RNG work. ShiftRows is useful, but only with multiple AES-instructions in a row. MixColumns is unfortunately only a
+32-bit operation, and thus only disperses bits across 32-bits inside of the state. Multiple rounds are needed
+to disperse bits further.
+
+Thanks and Notes
+------------
+
+I stand on the shoulders of giants.
+
+The core algorithm is based on pcg32, documented here: http://www.pcg-random.org/. The idea to 
+split "counter" with "mixer" is an incredibly effective design on modern machines with large amounts of
+instruction-level parallelism.
+
+The theory of hashing by Bob Jenkins is what most made me "get" cipher design. Bob Jenkin's
+page is absolutely excellent, and his "theory of funnels" put me on the right track. http://www.burtleburtle.net/bob/hash/doobs.html
+
+Daniel Lemire's blog is filled to the brim with SIMD tips and tricks. His article here also documents
+MANY reversible functions. While none of these reversible operations ended up in this implementation,
+the page served as a valuable reference in my experiments. https://lemire.me/blog/2016/08/09/how-many-reversible-integer-operations-do-you-know/
+
+Donald Knuth's "The Art of Computer Programming", volume 2, serves as a great introduction to the
+overall theory of RNGs.
+
+PractRand: http://pracrand.sourceforge.net/ for making an incredibly awesome RNG-testing utility that actually works
+on Windows (and works easily!).
+
+Agner Fog's instruction tables: I was constantly referencing Agner Fog's latency and throughput tables 
+throughout the coding of this RNG: https://www.agner.org/optimize/
+
+
+
 Preliminary PractRand Results on AESRand_increment
-==============================
+------------
 
 RNG_test using PractRand version 0.94
 RNG = RNG_stdin, seed = unknown
@@ -156,7 +201,7 @@ length= 512 gigabytes (2^39 bytes), time= 3484 seconds
 
  
 Preliminary PractRand Results on AESRand_parallelStream
-===============
+----------------
 
  RNG_test using PractRand version 0.94
 RNG = RNG_stdin, seed = unknown
@@ -209,47 +254,3 @@ length= 256 gigabytes (2^38 bytes), time= 1637 seconds
 rng=RNG_stdin, seed=unknown
 length= 512 gigabytes (2^39 bytes), time= 3481 seconds
   no anomalies in 387 test result(s)
-
-
-Weaknesses
-=============
-This RNG is surprisngly BAD at 1-bit changes. It would take 4, maybe 5 aesenc instructions
-in a row before I could get above 8GB of tests in PracRand, and the code was just multiples slower at that point.
-I've been investigating ways to make the generator better with 1-bit changes: the PCLMULQDQ (Carry-less Multiply)
-instruction which is the basis of the 128-bit multiply in GCM seems very promising. Carry-less multiply is 
-implemented in x86, ARM, and Power9 as well.
-
-However, my Threadripper 1950x appears to run the PCLMULQDQ instruction as microcode, and thus it only has
-a throughput of one-PCLMULQDQ every TWO instructions (4x less throughput than AESenc). In effect, running
-aesenc 5x in a row is faster, on my machine at least. (Intel machines are documented to run PCLMULQDQ per cycle,
-and thus PCLMULQDQ may be a faster base to use on Intel machines)
-
-aesenc has 4 steps: SubBytes, ShiftRows, MixColumns, and XOR Round Key. SubBytes is absolutely excellent for
-RNG work. ShiftRows is useful, but only with multiple AES-instructions in a row. MixColumns is unfortunately only a
-32-bit operation, and thus only disperses bits across 32-bits inside of the state. Multiple rounds are needed
-to disperse bits further.
-
-Thanks and Notes
-==============
-
-I stand on the shoulders of giants.
-
-The core algorithm is based on pcg32, documented here: http://www.pcg-random.org/. The idea to 
-split "counter" with "mixer" is an incredibly effective design on modern machines with large amounts of
-instruction-level parallelism.
-
-The theory of hashing by Bob Jenkins is what most made me "get" cipher design. Bob Jenkin's
-page is absolutely excellent, and his "theory of funnels" put me on the right track. http://www.burtleburtle.net/bob/hash/doobs.html
-
-Daniel Lemire's blog is filled to the brim with SIMD tips and tricks. His article here also documents
-MANY reversible functions. While none of these reversible operations ended up in this implementation,
-the page served as a valuable reference in my experiments. https://lemire.me/blog/2016/08/09/how-many-reversible-integer-operations-do-you-know/
-
-Donald Knuth's "The Art of Computer Programming", volume 2, serves as a great introduction to the
-overall theory of RNGs.
-
-PractRand: http://pracrand.sourceforge.net/ for making an incredibly awesome RNG-testing utility that actually works
-on Windows (and works easily!).
-
-Agner Fog's instruction tables: I was constantly referencing Agner Fog's latency and throughput tables 
-throughout the coding of this RNG: https://www.agner.org/optimize/

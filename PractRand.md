@@ -57,6 +57,10 @@ rng=RNG_stdin, seed=unknown
 length= 512 gigabytes (2^39 bytes), time= 3484 seconds
   no anomalies in 387 test result(s)
 
+rng=RNG_stdin, seed=unknown
+length= 1 terabyte (2^40 bytes), time= 7024 seconds
+  no anomalies in 401 test result(s)
+
  
 Preliminary PractRand Results on AESRand_parallelStream
 ----------------
@@ -112,3 +116,7 @@ length= 256 gigabytes (2^38 bytes), time= 1637 seconds
 rng=RNG_stdin, seed=unknown
 length= 512 gigabytes (2^39 bytes), time= 3481 seconds
   no anomalies in 387 test result(s)
+
+rng=RNG_stdin, seed=unknown
+length= 1 terabyte (2^40 bytes), time= 7016 seconds
+  no anomalies in 401 test result(s)

@@ -1,7 +1,8 @@
 #include "pch.h"
 
 // Sorry for the mess. I copy/pasted http://vigna.di.unimi.it/xorshift/xoshiro256plus.c and
-// http://www.pcg-random.org/download.html#minimal-c-implementation
+// http://www.pcg-random.org/download.html#minimal-c-implementation into this file.
+
 
 #include <stdint.h>
 

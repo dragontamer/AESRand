@@ -4,15 +4,16 @@ A Prototype implementation of Pseudo-RNG based on hardware-accelerated AES instr
 TL;DR
 --------
 * State: 128 bits (One XMM register of state)
+* 256-bits per iteration
 * Cycle Length: 2^64
 * Independent Streams: 2^64
-* Passes PractRand 512GB tests and beyond.
-* Tested: 29.2 GBps (Gigabytes per second) single-thread / single-core.
+* Passes PractRand 1TB tests and beyond.
+* Tested: 29.2 GBps (Gigabytes per second) single-thread / single-core. 
+* A throughput of ~8.5 Bytes per cycle. Or roughly 3.73 cycles per 256-bit iteration.
 * Faster than xoshiro256plus, pcg32, and std::mt19937 
 
 Introduction
 -------
-
 Using the principles behind http://www.pcg-random.org, I decided to design my own 
 pseudo-RNG. Here were my ideas:
 
@@ -49,55 +50,39 @@ if they are NOT dependent on each other. The "Simple Counter + Mixer" design fro
 lends itself very well to ILP. I designed the AESRand "counter" to have the absolute minimum
 1-cycle of latency per iteration. While the "mixer" executes in parallel: all XMM / 128-bit SIMD
 instructions I use have a throughput of 1-per-cycle or faster. In effect, this AES-RNG code is designed
-to theoretically pump out a 256-bit result every cycle.
+to theoretically pump out a 256-bit result every cycle (A hypothetical future CPU could
+feasibly run this code steady-state at 256-bits per-cycle)
 
 5. Full invertibility -- http://www.burtleburtle.net/bob/hash/doobs.html The JOAAT hash has a concept
 of a "bit funnel", which is a BAD thing for hashes. If you provably have full-invertibility, it means you
 never lose information. Its kind of a hard concept to describe, but it is fundamental to the design
 of RNGs, Cryptography, and so forth. The entirety of GF(2) fields and whatnot are all based around
 the concept of invertible operations. The XOR, Add, and AES-encode instructions all have inverts
-(XOR, Subtract, and AES-decode respectively).
+(XOR, Subtract, and AES-decode respectively), and therefore have the greatest chance of passing
+statistical tests.
 
 Benchmark Results
 --------
 
-Included in the code is a very simple benchmark, where I simply run the various
-RNGs, and use Windows's "QueryPerformanceCounter" to check the time before and afterwards.
-QueryPerformanceCounter has roughly a 3MHz clock (every 300 nanoseconds) and is excellent for these
-simple tests.
+[Click here](BenchmarkResults.md) for the latest benchmark results.
 
-To ensure that the optimizer won't erase the RNG code, I have a "Dummy Benchmark anti-optimizer print". Pay
-no mind to it.
+This is a very simple timer-based benchmark, where I simply run the various RNGs to be tested
+(AESRand, mt19937, pcg32, and xoshiro256plus) in a tight loop of 5-billion iterations. To ensure that
+the optimizer does NOT remove the RNG code, I have a "total" value that adds up every output
+of the RNG, and eventually prints it out to the screen.
 
-"mt19937" was NOT inlined. There is a "call" instruction in the generated assembly code. There's
-basically no hope for mt19937 to compete with the speed of the smaller generators.
+Before and after the 5-billion long loop, I run Window's 'QueryPerformanceCounter" to check
+the time before and afterwards. The clock typically ticks at 3MHz (every 333 nanoseconds or so),
+which should be accurate enough for tests of length 5-seconds or longer. 
 
-Both pcg32 and xoshiro256plus were inlined when I analyze the assembly. However, with 32-bit return
-values, the pcg32 generator falls behind.
+I checked the generated assembly (After building in VS2017, check the "AESRand.cod" file).
+The "mt19937" code was NOT inlined. Which may be a disadvantage, and why its so much slower than
+the other RNGs.
 
-Beginning Single-state 'serial' test
-Total Seconds: 5.08882
-GBps: 29.2821
-Dummy Benchmark anti-optimizer print: 1706011378085583560
-Beginning Parallel (2x) test: instruction-level parallelism
-Time: 8.04895
-GBps: 37.0263
-Dummy Benchmark anti-optimizer print: 1283732354369314394
+PCG32 and xoshiro256plus were both inlined well. I wasn't sure how well they'd adapt to ILP, so I
+created a 4x manually unrolled version for the both of them. The unrolled versions don't seem to be
+faster or slower.
 
-Testing mt19937
-Time: 21.338
-GBps: 0.872923
-Dummy Benchmark anti-optimizer print: 1680273558
-
-Testing pcg32
-Time: 7.8951
-GBps: 2.35924
-Dummy Benchmark anti-optimizer print: 2362602604
-
-Testing xoshiro256plus
-Time: 4.83551
-GBps: 7.70403
-Dummy Benchmark anti-optimizer print: 2202972135473059297
 
 Weaknesses
 ----------------

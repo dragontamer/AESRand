@@ -22,7 +22,7 @@ xoshiro256, pcg32, and std::mt19937.
 Design Principles
 -------
 
-1. AESRound-based. Every x86 CPUs for the past 5, maybe 10, years can execute
+1. AESRound-based. Every x86 CPUs since Intel Westmere (2010) and AMD Bulldozer (2011) can execute
 not only a singular "aesenc" instruction (AES Encode Round)... but they can also
 execute them incredibly quickly: at least one per cycle. AMD Ryzen / EPYC CPUs 
 can even execute them TWICE per cycle if they are independent. With a latency

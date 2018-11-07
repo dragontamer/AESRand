@@ -5,17 +5,22 @@ TL;DR
 --------
 * State: 128 bits (One XMM register of state)
 * 256-bits / 32-bytes generated per iteration
+* Incredible speed: roughly 3.7 CPU cycles per iteration
 * Cycle Length: 2^64
 * Independent Streams: 2^64
-* Passes PractRand 4TB tests
+* Core RNG passes 8TB+ tests. Parallel-stream generator fails at 8TB of PractRand (passes 4TB)
 * Tested: ~29.2 GBps (Gigabytes per second) single-thread / single-core. 
+* Dual-stream version achieves 37.1 GBps
 * A throughput of ~8.5 Bytes per cycle. Or roughly 3.73 cycles per 256-bit iteration.
 * Faster than xoshiro256plus, pcg32, and std::mt19937
 
-Introduction
+The shortest sample code is in the [Simplified Linux Version](AESRand_Linux/AESRand.cpp).
+Commentary is provided in this README, as well as through many comments in the Windows version.
+The Windows version contains a self-included benchmark to compare against the speed of 
+xoshiro256, pcg32, and std::mt19937.
+
+Design Principles
 -------
-Using the principles behind http://www.pcg-random.org, I decided to design my own 
-pseudo-RNG. Here were my ideas:
 
 1. AESRound-based. Every x86 CPUs for the past 5, maybe 10, years can execute
 not only a singular "aesenc" instruction (AES Encode Round)... but they can also
@@ -41,24 +46,33 @@ probably can beat the results I have here!
 
 3. PCG-random.org "Simple counter" + "Mixer" design -- PCG-random.org has a two-step
 RNG process. The "counter" (which was a multiply-based LCGRNG in the pcg32_random_r code), and
-a "mixer" (which was a simple shift add xor hash-function). My design is around a 64-bit
-counter and a 128-bit mixer, which outputs 256-bits of output each iteration through 
-three AES instructions.
+a "mixer" (which was a simple shift add xor hash-function). AESRand_increment serves as
+the "counter", while AESRand_rand serves as the "mixer".
 
-4. Instruction level parallelism (ILP) -- Modern processors can execute instructions in parallel
-if they are NOT dependent on each other. The "Simple Counter + Mixer" design from pcg-random.org
-lends itself very well to ILP. I designed the AESRand "counter" to potentially have the absolute minimum
-1-cycle of latency per iteration. After all, the "counter" is just a single SIMD add instruction.
-The "mixer" executes in parallel through the magic of ILP. All instructions in the mixer design
-have a throughput of 1-per-cycle.
+4. Minimum latency on the "Counter" -- The latency of the counter-portion of this RNG
+(AESRand_increment) is the absolute limit to the speed of any RNG. If it takes 5-cycles to
+update the state, your RNG will take 5-cycles (or more) per iteration. I've minimized
+the latency of AESRand_increment to 1-cycle, the absolute minimum latency.
 
-5. Full invertibility -- http://www.burtleburtle.net/bob/hash/doobs.html The JOAAT hash has a concept
+5. Instruction level parallelism (ILP) -- All instructions of the "mixer" portion of the RNG
+(AESRand_rand) have a throughput of 1-per-cycle or more. AMD Zen can execute two AES
+instructions per clock (and thus has a throughput of 2-per-cycle!!). Notice the 
+signature of AESRand_rand(const __m128i state). The state MUST be a constant to take
+advantage of ILP. Theoretically, iteration i could execute in paralle to iteration i+1,
+i+2, i+3, and i+4 (it takes 1-cycle to move to iteration i+1 due to counter-latency).
+Modern CPUs are incredibly good at capturing this pipeline and internally parallelizing
+the AES-instructions of the mixer. But only because I carefully kept the state a constant
+in the mixer-portion of the design. It should be noted that AESENC has a latency of 4-cycles
+on AMD Zen, but the 3.7 cycles per loop is faster than AMD can even execute a single 
+AES-instruction. Beating the 4 cycle limit of AES's latency is possible through the magic of ILP.
+
+6. Full invertibility -- http://www.burtleburtle.net/bob/hash/doobs.html The JOAAT hash has a concept
 of a "bit funnel", which is a BAD thing for hashes. If you provably have full-invertibility, it means you
 never lose information. Its kind of a hard concept to describe, but it is fundamental to the design
-of RNGs, Cryptography, and so forth. The entirety of GF(2) fields and whatnot are all based around
+of RNGs, Cryptography, and so forth. The entirety of GF(2) fields are all based around
 the concept of invertible operations. The XOR, Add, and AES-encode instructions all have inverts
 (XOR, Subtract, and AES-decode respectively), and therefore have the greatest chance of passing
-statistical tests.
+statistical tests... as long as the bits are "shuffled" enough.
 
 Benchmark Results
 --------
@@ -70,9 +84,7 @@ This is a very simple timer-based benchmark, where I simply run the various RNGs
 the optimizer does NOT remove the RNG code, I have a "total" value that adds up every output
 of the RNG, and eventually prints it out to the screen.
 
-Before and after the 5-billion long loop, I run Window's 'QueryPerformanceCounter" to check
-the time before and afterwards. The clock typically ticks at 3MHz (every 333 nanoseconds or so),
-which should be accurate enough for tests of length 5-seconds or longer. 
+Before and after the 5-billion long loop, I run Window's 'QueryPerformanceCounter" to log the time.
 
 I checked the generated assembly (After building in VS2017, check the "AESRand.cod" file).
 The "mt19937" code was NOT inlined. Which may be a disadvantage, and why its so much slower than
@@ -86,7 +98,7 @@ set up their ideal conditions.
 
 Weaknesses and Future Work
 ----------------
-This RNG is surprisngly BAD at 1-bit changes. If I changed the increment to a single-bit change
+AESRand is surprisngly BAD at 1-bit changes. If I changed the increment to a single-bit change
 like [0x1, 0, 0, 0, ...], it would take 4, maybe 5 aesenc instructions before the code could get
 above 8GB of tests in PractRand.
 
@@ -95,7 +107,7 @@ https://lemire.me/blog/2016/08/09/how-many-reversible-integer-operations-do-you-
 bitshifts, multiplies-with-odd numbers, and more are all interesting, but the AES-instructions
 seemed to mix bits better than any of the primitive instructions.
 
-The one instruction that holds a LOT of promise is PCLMULQDQ (Carry-less Multiply). This is a
+The one instruction that holds a lot of promise is PCLMULQDQ (Carry-less Multiply). This is a
 64-bit x 64-bit polynomial multiply on 128-bit XMM registers. Roughly 3 or 4 PCLMULQDQ, along
 with some bitshifts and XORs, could implement the 128-bit carryless multiply used in GCM 
 (galois counter mode). And this seems to be a very good way to "disperse bits" and create
@@ -122,6 +134,14 @@ affects half of the bits: 64-bits per 128-bit XMM register (or a total of ~128-b
 So 2-rounds of AES is NOT sufficient to have a proper avalanche (defined as a 50% chance to flip any bit of 
 the output). I get around the severe 1-bit weakness by ensuring that all 128-bits of state changes on every
 iteration.
+
+The "Parallel Stream" generator only changes the top 64-bits of the input. This is the "weak direction" of the
+random number generator, which fails after 8TB of testing in PractRand. Parallel Streams are also much
+slower to generate: requiring a lengthy 64-bit LCGRNG multiply+add. Nonetheless, the ability to support
+parallel streams is important in today's world of highly-parallelized simulations. Passing 4TB of PractRand
+means that 34-Billion parallel streams were created, and PractRand was unable to detect
+any statistical correlation between their start points. So at least 2^35 high-quality parallel streams are 
+available to use.
 
 Thanks and Notes
 ------------

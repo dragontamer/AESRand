@@ -3,7 +3,7 @@ A Prototype implementation of Pseudo-RNG based on hardware-accelerated AES instr
 
 TL;DR
 --------
-* State: 128 bits (One XMM register of state)
+* State: 128 bits (One XMM register)
 * 256-bits / 32-bytes generated per iteration
 * Incredible speed: roughly 3.7 CPU cycles per iteration
 * Cycle Length: 2^64

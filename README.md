@@ -57,14 +57,13 @@ the latency of AESRand_increment to 1-cycle, the absolute minimum latency.
 5. Instruction level parallelism (ILP) -- All instructions of the "mixer" portion of the RNG
 (AESRand_rand) have a throughput of 1-per-cycle or more. AMD Zen can execute two AES
 instructions per clock (and thus has a throughput of 2-per-cycle!!). Notice the 
-signature of AESRand_rand(const __m128i state). The state MUST be a constant to take
-advantage of ILP. Theoretically, iteration i could execute in paralle to iteration i+1,
-i+2, i+3, and i+4 (it takes 1-cycle to move to iteration i+1 due to counter-latency).
-Modern CPUs are incredibly good at capturing this pipeline and internally parallelizing
-the AES-instructions of the mixer. But only because I carefully kept the state a constant
-in the mixer-portion of the design. It should be noted that AESENC has a latency of 4-cycles
-on AMD Zen, but the 3.7 cycles per loop is faster than AMD can even execute a single 
-AES-instruction. Beating the 4 cycle limit of AES's latency is possible through the magic of ILP.
+signature of AESRand_rand(const \__m128i state). The state MUST be a constant to take
+advantage of ILP. Aside from the counter-latency, each iteration i can execute in parallel
+with future iterations i+1, i+2, i+3, etc. etc. Modern CPUs are incredibly good at capturing 
+this parallelism and internally pipelining the AES-instructions of the mixer. ILP allows you
+to beat the latency-characteristics of your instructions. For example, every iteration
+has a latency of 4 cycles per AESENC, or 8-cycles of latency total. However, I've tested
+3.7 cycles per iteration. The magic of ILP makes this possible. 
 
 6. Full invertibility -- http://www.burtleburtle.net/bob/hash/doobs.html The JOAAT hash has a concept
 of a "bit funnel", which is a BAD thing for hashes. If you provably have full-invertibility, it means you

@@ -1,7 +1,5 @@
 Initial Results from PractRand
 
-
-
 Preliminary PractRand Results on AESRand_increment
 ------------
 
@@ -69,7 +67,9 @@ rng=RNG_stdin, seed=unknown
 length= 4 terabytes (2^42 bytes), time= 27845 seconds
   no anomalies in 426 test result(s)
 
-
+rng=RNG_stdin, seed=unknown
+length= 8 terabytes (2^43 bytes), time= 56894 seconds
+  no anomalies in 438 test result(s)
  
 Preliminary PractRand Results on AESRand_parallelStream
 ----------------
@@ -137,3 +137,9 @@ length= 2 terabytes (2^41 bytes), time= 13248 seconds
 rng=RNG_stdin, seed=unknown
 length= 4 terabytes (2^42 bytes), time= 27881 seconds
   no anomalies in 426 test result(s)
+
+rng=RNG_stdin, seed=unknown
+length= 8 terabytes (2^43 bytes), time= 56968 seconds
+  Test Name                         Raw       Processed     Evaluation
+  BRank(12):64K(1)                  R= +1078  p~=  1.1e-325   FAIL !!!!!!
+  ...and 437 test result(s) without anomalies

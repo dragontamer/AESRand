@@ -1,0 +1,6 @@
+This Linux version serves as a compact and simplified proof-of-concept
+with far less verbosity than the Windows implementation. 
+
+For more notes on why certain values were chosen, read the Windows
+implementation
+

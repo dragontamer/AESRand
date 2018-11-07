@@ -20,7 +20,7 @@ std::array<__m128i, 2> AESRand_rand(const __m128i state){
 }
 
 int main(){
-	std::cout << "Running 5-billion Randoms" << std::endl; 
+	std::cout << "Running 5-billion iterations (160 Billion-bytes of Random Data)" << std::endl; 
 	__m128i state = AESRand_init(); 
 	__m128i total = _mm_setzero_si128(); 
 	__m128i total2 = _mm_setzero_si128(); 

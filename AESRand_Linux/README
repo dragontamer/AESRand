@@ -4,3 +4,24 @@ with far less verbosity than the Windows implementation.
 For more notes on why certain values were chosen, read the Windows
 implementation
 
+This Linux version is designed with maximum comptability, with
+-march=westmere in the Makefile. -march=skylake (or any other AVX
+computer) generates cleaner AVX instructions, but doesn't seem
+to affect this test very much. Westmere CPUs were first released
+on January 7, 2010, so I expect that most people's computers today
+would be able to run this RNGAES code.
+
+Try running with the "time" command. An example run on my machine is:
+
+time ./AESRand
+Running 5-billion iterations (160 Billion-bytes of Random Data)
+Dummy print to negate optimizer: -535139616294573357
+
+real    0m4.818s
+user    0m4.797s
+sys     0m0.000s
+
+This gives a speed of 1.04 billion iterations/sec, or 33.2 GBps of
+random data. My computer varies between 3.4GHz and 4GHz, so the code
+runs somewhere between 3.5 cycles per iteration, to 4.15 cycles per
+iteration. 

@@ -14,12 +14,7 @@ void AESRand_increment(__m128i& state){
 	state += increment; 
 }
 
-struct TwoResults{
-	__m128i high;
-	__m128i low;
-};
-
-TwoResults AESRand_rand(const __m128i state){
+std::array<__m128i, 2> AESRand_rand(const __m128i state){
 	__m128i penultimate = _mm_aesenc_si128(state, increment); 
 	return {_mm_aesenc_si128(penultimate, increment), _mm_aesdec_si128(penultimate, increment)};
 }
@@ -33,8 +28,8 @@ int main(){
 	for(long long i=0; i<5000000000; i++){
 		AESRand_increment(state); 
 		auto rands = AESRand_rand(state); 
-		total += rands.high;
-		total2 += rands.low; 
+		total += rands[0];
+		total2 += rands[1]; 
 	}
 
 	total += total2;

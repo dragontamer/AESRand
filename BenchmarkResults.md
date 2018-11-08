@@ -7,6 +7,7 @@ Pattern for calculating cycles per iteration: (number of seconds) * 3.4GHz clock
 * mt19937: 14.76 cycles per iteration (4-bytes)
 * pcg32 (Unrolled): 5.46 cycles per iteration (4-bytes)
 * xoshiro256plus (Unrolled): 3.32 cycles per iteration (8-bytes)
+* PlusOne XMM-registers: 1.59 cycles per iteration (Dummy Control, like BogoMIPS)
 
 The "overhead" of the AESRand benchmark are:
 1. The "For" loop: one-add per iteration (i++), and the cmp/jnz instruction (i<=ITERATIONS). Unrolling reduced this overhead, but modern CPUs are good at executing the loop-logic in parallel, which mitigates this overhead.
@@ -52,3 +53,8 @@ Testing xoshiro256plus
 Time: 5.09052
 GBps: 7.31809
 Dummy Benchmark anti-optimizer print: 5290432412060736627
+
+Beginning PlusOne XMM-registers Test
+Total Seconds: 2.3376
+GBps: 63.7456
+Dummy Benchmark anti-optimizer print: 6553255931290448384

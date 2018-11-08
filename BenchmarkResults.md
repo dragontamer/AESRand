@@ -19,36 +19,37 @@ The "overhead" of the AESRand benchmark are:
 Raw Results (AMD Threadripper 1950x locked to 3.4GHz)
 ===========
 
-Beginning Single-state 'serial' test
-Total Seconds: 5.4278
-GBps: 27.4534
-Dummy Benchmark anti-optimizer print: 1706011378085583560
-Beginning Parallel (2x) test: instruction-level parallelism
-Time: 8.67641
-GBps: 34.3487
-Dummy Benchmark anti-optimizer print: 1283732354369314394
+    
+    Beginning Single-state 'serial' test
+    Total Seconds: 5.4278
+    GBps: 27.4534
+    Dummy Benchmark anti-optimizer print: 1706011378085583560
+    Beginning Parallel (2x) test: instruction-level parallelism
+    Time: 8.67641
+    GBps: 34.3487
+    Dummy Benchmark anti-optimizer print: 1283732354369314394
 
-Testing mt19937
-Time: 21.7154
-GBps: 0.857752
-Dummy Benchmark anti-optimizer print: 1680273558
-
-Testing pcg32 Unrolled x4
-Time: 8.0232
-GBps: 2.32157
-Dummy Benchmark anti-optimizer print: 2362602604
-
-Testing pcg32
-Time: 8.22974
-GBps: 2.26331
-Dummy Benchmark anti-optimizer print: 757965796
-
-Testing xoshiro256plus Unrolled x4
-Time: 4.88474
-GBps: 7.62639
-Dummy Benchmark anti-optimizer print: 2202972135473059297
-
-Testing xoshiro256plus
-Time: 5.09052
-GBps: 7.31809
-Dummy Benchmark anti-optimizer print: 5290432412060736627
+    Testing mt19937
+    Time: 21.7154
+    GBps: 0.857752
+    Dummy Benchmark anti-optimizer print: 1680273558
+    
+    Testing pcg32 Unrolled x4
+    Time: 8.0232
+    GBps: 2.32157
+    Dummy Benchmark anti-optimizer print: 2362602604
+    
+    Testing pcg32
+    Time: 8.22974
+    GBps: 2.26331
+    Dummy Benchmark anti-optimizer print: 757965796
+    
+    Testing xoshiro256plus Unrolled x4
+    Time: 4.88474
+    GBps: 7.62639
+    Dummy Benchmark anti-optimizer print: 2202972135473059297
+    
+    Testing xoshiro256plus
+    Time: 5.09052
+    GBps: 7.31809
+    Dummy Benchmark anti-optimizer print: 5290432412060736627

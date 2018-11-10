@@ -71,7 +71,7 @@ rng=RNG_stdin, seed=unknown
 length= 8 terabytes (2^43 bytes), time= 56894 seconds
   no anomalies in 438 test result(s)
 
-Preliminary PractRand Results on AESRand_parallelStream 
+Preliminary PractRand Results on AESRand_parallelStream "Plus Pi"
 -------------------------------------------------------
 
 This version uses:
@@ -150,6 +150,12 @@ length= 2 terabytes (2^41 bytes), time= 14248 seconds
 rng=RNG_stdin, seed=unknown
 length= 4 terabytes (2^42 bytes), time= 29950 seconds
   no anomalies in 426 test result(s)
+
+rng=RNG_stdin, seed=unknown
+length= 8 terabytes (2^43 bytes), time= 60801 seconds
+  Test Name                         Raw       Processed     Evaluation
+  BRank(12):64K(1)                  R= +1078  p~=  1.1e-325   FAIL !!!!!!
+  ...and 437 test result(s) without anomalies
  
 Preliminary PractRand Results on AESRand_parallelStream Knuth LCGRNG
 ----------------

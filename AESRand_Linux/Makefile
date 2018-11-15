@@ -1,4 +1,4 @@
-all: AESRand.s AESRand AESRand_BigCrush
+all: AESRand.s AESRand AESRand_BigCrush2
 
 clean:
 	rm AESRand.s AESRand AESRand_BigCrush
@@ -11,3 +11,6 @@ AESRand: AESRand.cpp
 
 AESRand_BigCrush: AESRand_BigCrush.cpp
 	g++ -march=westmere -O2 AESRand_BigCrush.cpp -o AESRand_BigCrush -ltestu01
+
+AESRand_BigCrush2: AESRand_BigCrush2.cpp
+	g++ -march=westmere -O2 AESRand_BigCrush2.cpp -o AESRand_BigCrush2 -ltestu01

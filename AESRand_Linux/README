@@ -25,3 +25,8 @@ This gives a speed of 1.04 billion iterations/sec, or 33.2 GBps of
 random data. My computer varies between 3.4GHz and 4GHz, so the code
 runs somewhere between 3.5 cycles per iteration, to 4.15 cycles per
 iteration. 
+
+--------
+
+AESRandGenerator is a 2nd program I wrote to be tested with TestU01's
+"BigCrush". Its simply the generator that pipes its output to stdout

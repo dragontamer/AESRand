@@ -135,8 +135,7 @@ the output). I get around the severe 1-bit weakness by ensuring that all 128-bit
 iteration.
 
 The "Parallel Stream" generator only changes the top 64-bits of the input. This is the "weak direction" of the
-random number generator, which fails after 8TB of testing in PractRand. Parallel Streams are also much
-slower to generate: requiring a lengthy 64-bit LCGRNG multiply+add. Nonetheless, the ability to support
+random number generator, which fails after 8TB of testing in PractRand. Nonetheless, the ability to support
 parallel streams is important in today's world of highly-parallelized simulations. Passing 4TB of PractRand
 means that 34-Billion parallel streams were created, and PractRand was unable to detect
 any statistical correlation between their start points. So at least 2^35 high-quality parallel streams are 

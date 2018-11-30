@@ -169,3 +169,9 @@ PractRand Results
 ------------
 
 [Click here](PractRand.md) for PractRand results.
+
+
+BigCrush Results
+------------
+
+AESRand_Linux contains two BigCrush tests, which require TestU01 in order to be run. The "primary" AESRand generator passes BigCrush through multiple means: reversed bits, forward bits and so forth. TestU01 is limited to 32-bit tests, so it is a bit odd to try to adapt a 256-bit generator like AESRand to TestU01's interface.

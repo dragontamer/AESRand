@@ -22,6 +22,9 @@ int main(){
 		std::cout << "Unit Test passed" << std::endl;
 	} else {
 		std::cout << "Unit Test failed" << std::endl;
+		for(int i=0; i<8; i++){
+			std::cout << std::hex << ints[i] << "  " << matches[i] << std::endl;
+		}
 	}
 
 

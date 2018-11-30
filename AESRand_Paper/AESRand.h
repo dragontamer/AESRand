@@ -1,14 +1,25 @@
 #ifndef AESRAND_H
 #define AESRAND_H
 
-#include <array>
-#include <immintrin.h>
-#include <cstdint>
-
 // I expect ifdefs galore in this file 
+
+#if __amd64__
+#include <immintrin.h>
 typedef __m128i simd128;
 typedef __m128 simd128_float;
 typedef __m128i simd128_uint32;
+#endif
+
+#if _ARCH_PPC64
+#include <altivec.h>
+typedef vector unsigned long long  simd128;
+typedef vector float simd128_float;
+typedef vector unsigned int simd128_uint32;
+#endif
+
+#include <array>
+#include <cstdint>
+
 
 simd128 AESRand_init();
 void AESRand_increment(simd128& state);

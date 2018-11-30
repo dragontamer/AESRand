@@ -1,5 +1,7 @@
 #include "AESRand.h"
 
+#ifdef __amd64__
+
 simd128 AESRand_init(){
 	return _mm_setzero_si128(); 
 }
@@ -65,3 +67,51 @@ std::array<float, 8> AESRand_rand_float(const simd128 state){
 	_mm_storeu_ps(&toReturn[4], simd1);
 	return toReturn; 
 }
+
+#endif //amd64
+
+#ifdef _ARCH_PPC64
+
+// PPC Intrinsics defined in "64-bit ELF V2 ABI Specification", chapter 6 and Appendix A.
+// GCC defines the crypto-extension
+
+simd128 AESRand_init(){
+	return (simd128) {0, 0}; 
+}
+
+//simd128 increment = {0x2f2b29251f1d1713, 0x110d0b0705030201};
+simd128 increment = {0x110d0b0705030201, 0x2f2b29251f1d1713};
+
+//_mm_set_epi8(0x2f, 0x2b, 0x29, 0x25, 0x1f, 0x1d, 0x17, 0x13, 
+//		0x11, 0x0D, 0x0B, 0x07, 0x05, 0x03, 0x02, 0x01); 
+
+void AESRand_increment(simd128& state){
+	state += increment; 
+	//state = vec_add(state, increment); 
+}
+
+std::array<simd128, 2> AESRand_rand(const simd128 state){
+	simd128 penultimate = __builtin_crypto_vcipher(state, increment); 
+	simd128 first_ret = __builtin_crypto_vcipher(penultimate, increment); 
+	simd128 second_ret = __builtin_crypto_vncipher(penultimate, increment); 
+	return {first_ret, second_ret}; 
+}
+
+std::array<uint32_t, 8> AESRand_rand_uint32(const simd128 state){
+	auto rands = AESRand_rand(state); 
+
+	std::array<uint32_t, 8> toReturn;
+	toReturn[0] = rands[0][0];
+	toReturn[1] = rands[0][0] >> 32;
+	toReturn[2] = rands[0][1];
+	toReturn[3] = rands[0][1] >> 32;
+	toReturn[4] = rands[1][0];
+	toReturn[5] = rands[1][0] >> 32;
+	toReturn[6] = rands[1][1];
+	toReturn[7] = rands[1][1] >> 32;
+//	_mm_storeu_si128((__m128i*)&toReturn[0], rands[0]);
+//	_mm_storeu_si128((__m128i*)&toReturn[4], rands[1]);
+	return toReturn; 
+}
+
+#endif

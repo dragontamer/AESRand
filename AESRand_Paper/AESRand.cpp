@@ -97,7 +97,8 @@ std::array<simd128, 2> AESRand_rand(const simd128 state){
 	simd128 increment_endian = endianConv(increment);
 	simd128 penultimate = __builtin_crypto_vcipher(state_endian, increment_endian); 
 	simd128 first_ret = __builtin_crypto_vcipher(penultimate, increment_endian); 
-	simd128 second_ret = __builtin_crypto_vncipher(penultimate, increment_endian); 
+	simd128 second_ret = __builtin_crypto_vncipher(penultimate, (vector unsigned long long) {0,0}); 
+	second_ret ^= increment_endian;
 	return {endianConv(first_ret), endianConv(second_ret)}; 
 }
 

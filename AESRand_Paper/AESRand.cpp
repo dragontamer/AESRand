@@ -98,6 +98,10 @@ std::array<simd128, 2> AESRand_rand(const simd128 state){
 	simd128 penultimate = __builtin_crypto_vcipher(state_endian, increment_endian); 
 	simd128 first_ret = __builtin_crypto_vcipher(penultimate, increment_endian); 
 	simd128 second_ret = __builtin_crypto_vncipher(penultimate, (vector unsigned long long) {0,0}); 
+
+	// Note: this is suboptimal. A "MixColumns" can be applied at compile-time to the
+	// increment_endian value to combine this XOR with the above vncipher command. Depends how much
+	// we care about optimization...
 	second_ret ^= increment_endian;
 	return {endianConv(first_ret), endianConv(second_ret)}; 
 }

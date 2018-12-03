@@ -6,7 +6,7 @@ simd128 AESRand_init(){
 	return _mm_setzero_si128(); 
 }
 
-simd128 increment = _mm_set_epi8(0x2f, 0x2b, 0x29, 0x25, 0x1f, 0x1d, 0x17, 0x13, 
+static simd128 increment = _mm_set_epi8(0x2f, 0x2b, 0x29, 0x25, 0x1f, 0x1d, 0x17, 0x13, 
 		0x11, 0x0D, 0x0B, 0x07, 0x05, 0x03, 0x02, 0x01); 
 
 void AESRand_increment(simd128& state){
@@ -75,15 +75,17 @@ std::array<float, 8> AESRand_rand_float(const simd128 state){
 // PPC Intrinsics defined in "64-bit ELF V2 ABI Specification", chapter 6 and Appendix A.
 // GCC defines the crypto-extension
 
+// PowerPC operates on big-endian FIPS 197 compatible AES-vectors
+// Convert to big-endian and back to retain compatibility with AMD64
+static simd128 endianConv(simd128 in){
+	return vec_perm(in, in, (vector unsigned char){15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0});
+}
+
 simd128 AESRand_init(){
 	return (simd128) {0, 0}; 
 }
 
-//simd128 increment = {0x2f2b29251f1d1713, 0x110d0b0705030201};
-simd128 increment = {0x110d0b0705030201, 0x2f2b29251f1d1713};
-
-//_mm_set_epi8(0x2f, 0x2b, 0x29, 0x25, 0x1f, 0x1d, 0x17, 0x13, 
-//		0x11, 0x0D, 0x0B, 0x07, 0x05, 0x03, 0x02, 0x01); 
+static simd128 increment = {0x110d0b0705030201, 0x2f2b29251f1d1713};
 
 void AESRand_increment(simd128& state){
 	state += increment; 
@@ -91,10 +93,12 @@ void AESRand_increment(simd128& state){
 }
 
 std::array<simd128, 2> AESRand_rand(const simd128 state){
-	simd128 penultimate = __builtin_crypto_vcipher(state, increment); 
-	simd128 first_ret = __builtin_crypto_vcipher(penultimate, increment); 
-	simd128 second_ret = __builtin_crypto_vncipher(penultimate, increment); 
-	return {first_ret, second_ret}; 
+	simd128 state_endian = endianConv(state);
+	simd128 increment_endian = endianConv(increment);
+	simd128 penultimate = __builtin_crypto_vcipher(state_endian, increment_endian); 
+	simd128 first_ret = __builtin_crypto_vcipher(penultimate, increment_endian); 
+	simd128 second_ret = __builtin_crypto_vncipher(penultimate, increment_endian); 
+	return {endianConv(first_ret), endianConv(second_ret)}; 
 }
 
 std::array<uint32_t, 8> AESRand_rand_uint32(const simd128 state){

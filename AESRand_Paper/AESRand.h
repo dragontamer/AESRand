@@ -17,9 +17,15 @@ typedef vector float simd128_float;
 typedef vector unsigned int simd128_uint32;
 #endif
 
+#if __aarch64__ 
+#include <arm_neon.h>
+typedef uint8x16_t  simd128;
+typedef float32x4_t simd128_float;
+typedef uint32x4_t simd128_uint32;
+#endif
+
 #include <array>
 #include <cstdint>
-
 
 simd128 AESRand_init();
 void AESRand_increment(simd128& state);

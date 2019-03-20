@@ -132,8 +132,9 @@ simd128 AESRand_init(){
 	return veorq_u8(arb, arb);
 }
 
-static uint8_t increment[] = {0x2f, 0x2b, 0x29, 0x25, 0x1f, 0x1d, 0x17, 0x13, 
-		0x11, 0x0D, 0x0B, 0x07, 0x05, 0x03, 0x02, 0x01};
+// Endian is reversed compared to Intel. Completely backwards...
+uint8_t increment[16] = {0x01, 0x02, 0x03, 0x05, 0x07, 0x0B, 0x0D, 0x11,
+	0x13, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f};
 
 void AESRand_increment(simd128& state){
 	simd128 inc = vld1q_u8(increment); 
@@ -143,8 +144,8 @@ void AESRand_increment(simd128& state){
 std::array<simd128, 2> AESRand_rand(const simd128 state){
 	simd128 inc = vld1q_u8(increment);
 	simd128 penultimate_intel = vaesmcq_u8(vaeseq_u8(state, vdupq_n_u8(0)));
-	simd128 penultimate_arm_enc = vaesmcq_u8(vaeseq_u8(state, (inc)));
-	simd128 penultimate_arm_dec = vaesimcq_u8(vaesdq_u8(state, (inc)));
+	simd128 penultimate_arm_enc = vaesmcq_u8(vaeseq_u8(penultimate_intel, (inc)));
+	simd128 penultimate_arm_dec = vaesimcq_u8(vaesdq_u8(penultimate_intel, (inc)));
 	return {veorq_u8(penultimate_arm_enc, (inc)), veorq_u8(penultimate_arm_dec, inc)};
 }
 

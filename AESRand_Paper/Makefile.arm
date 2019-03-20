@@ -1,13 +1,15 @@
+GPP=g++-8.3
+
 all: AESRand.s AESRand 
 
 clean:
 	rm AESRand.s AESRand AESRand.o UnitTest
 
 AESRand.s: AESRand.cpp
-	g++ -std=c++11 -march=armv8-a+simd+crypto -S AESRand.cpp -o AESRand.s
+	$(GPP) -std=c++11 -march=armv8-a+simd+crypto -S AESRand.cpp -o AESRand.s
 
 AESRand.o: AESRand.cpp
-	g++ -g -c -std=c++11 -march=armv8-a+simd+crypto AESRand.cpp -o AESRand.o
+	$(GPP) -g -c -std=c++11 -march=armv8-a+simd+crypto AESRand.cpp -o AESRand.o
 
 UnitTest: UnitTest.cpp AESRand.o
-	g++ -g -std=c++11 -march=armv8-a+simd+crypto UnitTest.cpp AESRand.o -o UnitTest
+	$(GPP) -g -std=c++11 -march=armv8-a+simd+crypto UnitTest.cpp AESRand.o -o UnitTest

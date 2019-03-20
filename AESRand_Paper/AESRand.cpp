@@ -141,10 +141,23 @@ void AESRand_increment(simd128& state){
 }
 
 std::array<simd128, 2> AESRand_rand(const simd128 state){
+	simd128 inc = vld1q_u8(increment);
 	simd128 penultimate_intel = vaesmcq_u8(vaeseq_u8(state, vdupq_n_u8(0)));
-	simd128 penultimate_arm_enc = vaesmcq_u(vaeseq_u8(state, vld1q_u8(increment)));
-	simd128 penultimate_arm_dec = vaesimcq_u(vaesdq_u8(state, vld1q_u8(increment)));
-	return {veorq_u8(penultimate_arm_enc, increment), veorq_u8(penultimate_arm_dec, increment)};
+	simd128 penultimate_arm_enc = vaesmcq_u8(vaeseq_u8(state, (inc)));
+	simd128 penultimate_arm_dec = vaesimcq_u8(vaesdq_u8(state, (inc)));
+	return {veorq_u8(penultimate_arm_enc, (inc)), veorq_u8(penultimate_arm_dec, inc)};
+}
+
+std::array<uint32_t, 8> AESRand_rand_uint32(const simd128 state){
+	auto rands = AESRand_rand(state); 
+
+	std::array<uint32_t, 8> toReturn;
+	vst1q_u8((uint8_t*) &toReturn[0], rands[0]);
+	vst1q_u8((uint8_t*) &toReturn[4], rands[1]);
+//	_mm_storeu_si128((__m128i*)&toReturn[0], rands[0]);
+//	_mm_storeu_si128((__m128i*)&toReturn[4], rands[1]);
+	return toReturn; 
+}
 
 /*
 static __m128 toFloats(__m128i input){
@@ -175,15 +188,6 @@ static __m128 toFloats(__m128i input){
 
 	return _mm_xor_ps(fastResult, _mm_castsi128_ps(unused9bits));
 #endif
-}
-
-std::array<uint32_t, 8> AESRand_rand_uint32(const simd128 state){
-	auto rands = AESRand_rand(state); 
-
-	std::array<uint32_t, 8> toReturn;
-	_mm_storeu_si128((__m128i*)&toReturn[0], rands[0]);
-	_mm_storeu_si128((__m128i*)&toReturn[4], rands[1]);
-	return toReturn; 
 }
 
 std::array<float, 8> AESRand_rand_float(const simd128 state){
